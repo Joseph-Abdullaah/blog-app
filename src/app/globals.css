@@ -4,9 +4,152 @@
 
 @custom-variant dark (&:is(.dark *));
 
-@theme inline {
+/*
+ * Byline design system — tokens.
+ * Source of truth: docs/05-DESIGN-SYSTEM.md (Claude Design "Byline" system).
+ * Byline tokens are defined first; the shadcn variables further down are aliases.
+ */
+
+/* ---- Theme: static design tokens (type, radius, size, motion) ---- */
+@theme {
+    --font-sans: var(--font-inter), system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    --font-serif: var(--font-source-serif), Georgia, serif;
+    --font-mono: var(--font-jetbrains-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
     --font-heading: var(--font-sans);
-    --font-sans: var(--font-sans);
+
+    /* Type scale: text-<token> sets size, line-height, tracking and weight. */
+    --text-display-lg: 48px;
+    --text-display-lg--line-height: 1.08;
+    --text-display-lg--letter-spacing: -1.6px;
+    --text-display-lg--font-weight: 600;
+    --text-display-md: 36px;
+    --text-display-md--line-height: 1.12;
+    --text-display-md--letter-spacing: -1px;
+    --text-display-md--font-weight: 600;
+    --text-display-sm: 28px;
+    --text-display-sm--line-height: 1.2;
+    --text-display-sm--letter-spacing: -0.6px;
+    --text-display-sm--font-weight: 600;
+    --text-headline: 24px;
+    --text-headline--line-height: 1.25;
+    --text-headline--letter-spacing: -0.4px;
+    --text-headline--font-weight: 600;
+    --text-title-lg: 20px;
+    --text-title-lg--line-height: 1.3;
+    --text-title-lg--letter-spacing: -0.3px;
+    --text-title-lg--font-weight: 600;
+    --text-title: 17px;
+    --text-title--line-height: 1.35;
+    --text-title--letter-spacing: -0.2px;
+    --text-title--font-weight: 600;
+    --text-title-sm: 15px;
+    --text-title-sm--line-height: 1.4;
+    --text-title-sm--letter-spacing: -0.1px;
+    --text-title-sm--font-weight: 500;
+    --text-body: 15px;
+    --text-body--line-height: 1.55;
+    --text-body-sm: 14px;
+    --text-body-sm--line-height: 1.5;
+    --text-label: 14px;
+    --text-label--line-height: 1.2;
+    --text-label--font-weight: 500;
+    --text-caption: 12px;
+    --text-caption--line-height: 1.4;
+    --text-eyebrow: 12px;
+    --text-eyebrow--line-height: 1.3;
+    --text-eyebrow--letter-spacing: 0.4px;
+    --text-eyebrow--font-weight: 500;
+    --text-reading-lead: 22px;
+    --text-reading-lead--line-height: 1.5;
+    --text-reading-body: 20px;
+    --text-reading-body--line-height: 1.75;
+    --text-reading-sm: 17px;
+    --text-reading-sm--line-height: 1.55;
+    --text-reading-h2: 30px;
+    --text-reading-h2--line-height: 1.25;
+    --text-reading-h2--letter-spacing: -0.6px;
+    --text-reading-h2--font-weight: 600;
+    --text-reading-h3: 24px;
+    --text-reading-h3--line-height: 1.3;
+    --text-reading-h3--letter-spacing: -0.4px;
+    --text-reading-h3--font-weight: 600;
+    --text-reading-h4: 20px;
+    --text-reading-h4--line-height: 1.35;
+    --text-reading-h4--letter-spacing: -0.2px;
+    --text-reading-h4--font-weight: 600;
+    --text-code: 14px;
+    --text-code--line-height: 1.6;
+
+    /* Layout sizes: max-w-wide, h-navbar, w-sidenav, w-rail ... */
+    --container-wide: 1152px;
+    --container-page: 1024px;
+    --container-read: 720px;
+    --spacing-navbar: 64px;
+    --spacing-sidenav: 240px;
+    --spacing-rail: 320px;
+    --spacing-control-sm: 32px;
+    --spacing-control-md: 40px;
+    --spacing-control-lg: 48px;
+    --spacing-input: 44px;
+
+    /* Motion */
+    --duration-fast: 120ms;
+    --duration-base: 180ms;
+    --duration-slow: 240ms;
+    --ease-byline: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Mobile (< 768px) display sizes. */
+@media (max-width: 767px) {
+    :root {
+        --text-display-lg: 34px;
+        --text-display-lg--line-height: 1.12;
+        --text-display-md: 28px;
+        --text-display-sm: 24px;
+        --text-reading-lead: 19px;
+        --text-reading-body: 18px;
+        --text-reading-body--line-height: 1.7;
+    }
+}
+
+/* ---- Theme: color tokens, radius, shadow (mapped to variables below) ---- */
+@theme inline {
+    --color-canvas: var(--canvas);
+    --color-surface-1: var(--surface-1);
+    --color-surface-2: var(--surface-2);
+    --color-surface-3: var(--surface-3);
+    --color-hairline: var(--hairline);
+    --color-hairline-strong: var(--hairline-strong);
+    --color-ink: var(--ink);
+    --color-ink-muted: var(--ink-muted);
+    --color-ink-subtle: var(--ink-subtle);
+    --color-ink-tertiary: var(--ink-tertiary);
+    --color-on-ink: var(--on-ink);
+    --color-brand: var(--brand);
+    --color-brand-hover: var(--brand-hover);
+    --color-brand-subtle: var(--brand-subtle);
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-danger: var(--danger);
+    --color-on-danger: var(--on-danger);
+    --color-like: var(--like);
+    --color-overlay: var(--overlay);
+
+    --shadow-pop: var(--elevation-pop);
+    --shadow-dialog: var(--elevation-dialog);
+
+    /* Radius scale: xs 4 · sm 6 · md 8 · lg 12 · xl 16 · pill · full */
+    --radius-xs: 4px;
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+    --radius-xl: 16px;
+    --radius-2xl: 20px;
+    --radius-3xl: 24px;
+    --radius-4xl: 28px;
+    --radius-pill: 9999px;
+
+    /* shadcn aliases */
     --color-sidebar-ring: var(--sidebar-ring);
     --color-sidebar-border: var(--sidebar-border);
     --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -24,6 +167,7 @@
     --color-input: var(--input);
     --color-border: var(--border);
     --color-destructive: var(--destructive);
+    --color-destructive-foreground: var(--on-danger);
     --color-accent-foreground: var(--accent-foreground);
     --color-accent: var(--accent);
     --color-muted-foreground: var(--muted-foreground);
@@ -38,95 +182,159 @@
     --color-card: var(--card);
     --color-foreground: var(--foreground);
     --color-background: var(--background);
-    --radius-sm: calc(var(--radius) * 0.6);
-    --radius-md: calc(var(--radius) * 0.8);
-    --radius-lg: var(--radius);
-    --radius-xl: calc(var(--radius) * 1.4);
-    --radius-2xl: calc(var(--radius) * 1.8);
-    --radius-3xl: calc(var(--radius) * 2.2);
-    --radius-4xl: calc(var(--radius) * 2.6);
 }
 
 :root {
-    --background: oklch(1 0 0);
-    --foreground: oklch(0.145 0 0);
-    --card: oklch(1 0 0);
-    --card-foreground: oklch(0.145 0 0);
-    --popover: oklch(1 0 0);
-    --popover-foreground: oklch(0.145 0 0);
-    --primary: oklch(0.205 0 0);
-    --primary-foreground: oklch(0.985 0 0);
-    --secondary: oklch(0.97 0 0);
-    --secondary-foreground: oklch(0.205 0 0);
-    --muted: oklch(0.97 0 0);
-    --muted-foreground: oklch(0.556 0 0);
-    --accent: oklch(0.97 0 0);
-    --accent-foreground: oklch(0.205 0 0);
-    --destructive: oklch(0.577 0.245 27.325);
-    --border: oklch(0.922 0 0);
-    --input: oklch(0.922 0 0);
-    --ring: oklch(0.708 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --radius: 0.625rem;
-    --sidebar: oklch(0.985 0 0);
-    --sidebar-foreground: oklch(0.145 0 0);
-    --sidebar-primary: oklch(0.205 0 0);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.97 0 0);
-    --sidebar-accent-foreground: oklch(0.205 0 0);
-    --sidebar-border: oklch(0.922 0 0);
-    --sidebar-ring: oklch(0.708 0 0);
+    /* Byline tokens — light */
+    --canvas: #ffffff;
+    --surface-1: #f7f7f8;
+    --surface-2: #efeff1;
+    --surface-3: #e6e6e9;
+    --hairline: #ececee;
+    --hairline-strong: #d9d9de;
+    --ink: #0b0b0c;
+    --ink-muted: #3a3b40;
+    --ink-subtle: #6b6f76;
+    --ink-tertiary: #9a9ea6;
+    --on-ink: #ffffff;
+    --brand: #5e6ad2;
+    --brand-hover: #4c57c4;
+    --brand-subtle: #eef0fb;
+    --success: #1f8a3b;
+    --warning: #b26b00;
+    --danger: #d93036;
+    --on-danger: #ffffff;
+    --like: #e5484d;
+    --overlay: rgba(0, 0, 0, 0.4);
+    --elevation-pop: 0 8px 24px -8px rgba(0, 0, 0, 0.12);
+    --elevation-dialog: 0 24px 64px -16px rgba(0, 0, 0, 0.24);
+
+    /* shadcn variables → Byline tokens (docs §2.3) */
+    --background: var(--canvas);
+    --foreground: var(--ink);
+    --card: var(--surface-1);
+    --card-foreground: var(--ink);
+    --popover: var(--canvas);
+    --popover-foreground: var(--ink);
+    --primary: var(--ink);
+    --primary-foreground: var(--on-ink);
+    --secondary: var(--surface-1);
+    --secondary-foreground: var(--ink);
+    --muted: var(--surface-1);
+    --muted-foreground: var(--ink-subtle);
+    --accent: var(--surface-2);
+    --accent-foreground: var(--ink);
+    --destructive: var(--danger);
+    --border: var(--hairline);
+    --input: var(--hairline);
+    --ring: var(--brand);
+    --chart-1: var(--brand);
+    --chart-2: var(--ink-subtle);
+    --chart-3: var(--ink-muted);
+    --chart-4: var(--hairline-strong);
+    --chart-5: var(--surface-3);
+    --radius: 12px;
+    --sidebar: var(--canvas);
+    --sidebar-foreground: var(--ink);
+    --sidebar-primary: var(--ink);
+    --sidebar-primary-foreground: var(--on-ink);
+    --sidebar-accent: var(--surface-1);
+    --sidebar-accent-foreground: var(--ink);
+    --sidebar-border: var(--hairline);
+    --sidebar-ring: var(--brand);
 }
 
 .dark {
-    --background: oklch(0.145 0 0);
-    --foreground: oklch(0.985 0 0);
-    --card: oklch(0.205 0 0);
-    --card-foreground: oklch(0.985 0 0);
-    --popover: oklch(0.205 0 0);
-    --popover-foreground: oklch(0.985 0 0);
-    --primary: oklch(0.922 0 0);
-    --primary-foreground: oklch(0.205 0 0);
-    --secondary: oklch(0.269 0 0);
-    --secondary-foreground: oklch(0.985 0 0);
-    --muted: oklch(0.269 0 0);
-    --muted-foreground: oklch(0.708 0 0);
-    --accent: oklch(0.269 0 0);
-    --accent-foreground: oklch(0.985 0 0);
-    --destructive: oklch(0.704 0.191 22.216);
-    --border: oklch(1 0 0 / 10%);
-    --input: oklch(1 0 0 / 15%);
-    --ring: oklch(0.556 0 0);
-    --chart-1: oklch(0.87 0 0);
-    --chart-2: oklch(0.556 0 0);
-    --chart-3: oklch(0.439 0 0);
-    --chart-4: oklch(0.371 0 0);
-    --chart-5: oklch(0.269 0 0);
-    --sidebar: oklch(0.205 0 0);
-    --sidebar-foreground: oklch(0.985 0 0);
-    --sidebar-primary: oklch(0.488 0.243 264.376);
-    --sidebar-primary-foreground: oklch(0.985 0 0);
-    --sidebar-accent: oklch(0.269 0 0);
-    --sidebar-accent-foreground: oklch(0.985 0 0);
-    --sidebar-border: oklch(1 0 0 / 10%);
-    --sidebar-ring: oklch(0.556 0 0);
+    /* Byline tokens — dark */
+    --canvas: #08090a;
+    --surface-1: #0f1011;
+    --surface-2: #161718;
+    --surface-3: #1d1e20;
+    --hairline: #23252a;
+    --hairline-strong: #34343a;
+    --ink: #f7f8f8;
+    --ink-muted: #d0d6e0;
+    --ink-subtle: #8a8f98;
+    --ink-tertiary: #62666d;
+    --on-ink: #08090a;
+    --brand: #7c86e8;
+    --brand-hover: #959ef0;
+    --brand-subtle: #1a1c2e;
+    --success: #3dbe5e;
+    --warning: #f5a524;
+    --danger: #f2555a;
+    --on-danger: #08090a;
+    --like: #f2555a;
+    --overlay: rgba(0, 0, 0, 0.6);
+    --elevation-pop: none;
+    --elevation-dialog: none;
+
+    --popover: var(--surface-2);
 }
 
 @layer base {
-  * {
-    @apply border-border outline-ring/50;
+    * {
+        @apply border-border;
     }
-  body {
-    @apply bg-background text-foreground;
+    html {
+        @apply font-sans;
     }
-  button:not(:disabled), [role="button"]:not(:disabled) {
-    cursor: pointer;
+    body {
+        @apply bg-background text-foreground;
+        font-size: var(--text-body);
+        line-height: var(--text-body--line-height);
     }
-  html {
-    @apply font-sans;
+    button:not(:disabled),
+    [role="button"]:not(:disabled) {
+        cursor: pointer;
+    }
+    /* Focus: solid 2px brand outline, 2px offset, on every focusable element. */
+    :focus-visible {
+        outline: 2px solid var(--brand);
+        outline-offset: 2px;
+    }
+    /* Lucide icons: stroke 1.75 */
+    .lucide {
+        stroke-width: 1.75;
+    }
+    ::selection {
+        background: var(--brand-subtle);
+    }
+    a {
+        transition-duration: var(--duration-fast);
+    }
+}
+
+/* Reduced motion: opacity-only transitions. */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* Skeleton shimmer (1.2s, surface-2 → surface-3). */
+@keyframes byline-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Like heart pops once. */
+@keyframes byline-pop {
+    0% {
+        transform: scale(1);
+    }
+    40% {
+        transform: scale(1.25);
+    }
+    100% {
+        transform: scale(1);
     }
 }
