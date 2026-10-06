@@ -1,0 +1,287 @@
+// Byline schema.
+// 1. Better Auth core tables — generated with `npx auth@latest generate --adapter prisma --dialect postgresql`
+// 2. Username plugin fields — from https://better-auth.com/docs/plugins/username#schema
+// 3. Byline tables and profile fields — from docs/06-DATABASE-SCHEMA.md
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────── Enums ─────────────
+enum BlogStatus {
+  DRAFT
+  PUBLISHED
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  REPLY
+  SHARE
+  SUBSCRIBE
+  NEW_BLOG
+}
+
+enum ShareChannel {
+  COPY_LINK
+  X
+  FACEBOOK
+  LINKEDIN
+  WHATSAPP
+  EMAIL
+}
+
+// ───────────── Better Auth (generated) ─────────────
+model User {
+  id            String    @id
+  name          String
+  email         String
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  sessions      Session[]
+  accounts      Account[]
+
+  // Username plugin
+  username        String? @unique
+  displayUsername String?
+
+  // Byline profile fields
+  bio       String? @db.VarChar(200)
+  youtube   String? @db.VarChar(255)
+  instagram String? @db.VarChar(255)
+  facebook  String? @db.VarChar(255)
+  twitter   String? @db.VarChar(255)
+  github    String? @db.VarChar(255)
+  website   String? @db.VarChar(255)
+
+  // Byline relations
+  blogs                  Blog[]
+  likes                  Like[]
+  comments               Comment[]
+  reads                  Read[]
+  shares                 Share[]
+  subscriptions          Subscription[] @relation("Subscriber")
+  subscribers            Subscription[] @relation("Author")
+  notificationsReceived  Notification[] @relation("Recipient")
+  notificationsTriggered Notification[] @relation("Actor")
+
+  @@unique([email])
+  // Trigram search indexes (pg_trgm, created in the search_indexes migration)
+  @@index([username(ops: raw("gin_trgm_ops"))], type: Gin, map: "user_username_trgm_idx")
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "user_name_trgm_idx")
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime
+  token     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  @@index([userId])
+  @@map("account")
+}
+
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([identifier])
+  @@map("verification")
+}
+
+// ───────────── Content ─────────────
+model Blog {
+  id              String     @id @default(cuid())
+  authorId        String
+  slug            String?    @unique @db.VarChar(90) // set on first publish
+  title           String     @default("") @db.VarChar(120)
+  description     String     @default("") @db.VarChar(200)
+  bannerUrl       String?
+  content         Json       @default("{\"blocks\":[]}") // Editor.js OutputData
+  status          BlogStatus @default(DRAFT)
+  readTimeMinutes Int        @default(0)
+  likesCount      Int        @default(0)
+  commentsCount   Int        @default(0)
+  readsCount      Int        @default(0)
+  sharesCount     Int        @default(0)
+  publishedAt     DateTime?  @db.Timestamptz(3)
+  createdAt       DateTime   @default(now()) @db.Timestamptz(3)
+  updatedAt       DateTime   @updatedAt @db.Timestamptz(3)
+
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  topics        BlogTopic[]
+  likes         Like[]
+  comments      Comment[]
+  reads         Read[]
+  shares        Share[]
+  notifications Notification[]
+
+  @@index([status, publishedAt(sort: Desc)])
+  @@index([authorId, status, updatedAt(sort: Desc)])
+  @@index([title(ops: raw("gin_trgm_ops"))], type: Gin, map: "blog_title_trgm_idx")
+  @@index([description(ops: raw("gin_trgm_ops"))], type: Gin, map: "blog_description_trgm_idx")
+  @@map("blog")
+}
+
+model Topic {
+  id        String   @id @default(cuid())
+  name      String   @db.VarChar(30)
+  slug      String   @unique @db.VarChar(40)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  blogs BlogTopic[]
+
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "topic_name_trgm_idx")
+  @@map("topic")
+}
+
+model BlogTopic {
+  blogId  String
+  topicId String
+
+  blog  Blog  @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  topic Topic @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@id([blogId, topicId])
+  @@index([topicId])
+  @@map("blog_topic")
+}
+
+// ───────────── Interactions ─────────────
+model Like {
+  id        String   @id @default(cuid())
+  userId    String
+  blogId    String
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  blog Blog @relation(fields: [blogId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, blogId])
+  @@index([blogId])
+  @@map("like")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  blogId    String
+  authorId  String
+  parentId  String? // null = top-level; otherwise id of a top-level comment
+  content   String   @db.VarChar(1000)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  blog          Blog           @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  author        User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent        Comment?       @relation("Replies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies       Comment[]      @relation("Replies")
+  notifications Notification[]
+
+  @@index([blogId, parentId, createdAt(sort: Desc)])
+  @@index([parentId, createdAt])
+  @@map("comment")
+}
+
+model Read {
+  id        String   @id @default(cuid())
+  blogId    String
+  userId    String?
+  visitorId String   @db.VarChar(36)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  blog Blog  @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([blogId, visitorId, createdAt(sort: Desc)])
+  @@index([blogId, createdAt])
+  @@map("read")
+}
+
+model Share {
+  id        String       @id @default(cuid())
+  blogId    String
+  userId    String?
+  visitorId String       @db.VarChar(36)
+  channel   ShareChannel
+  createdAt DateTime     @default(now()) @db.Timestamptz(3)
+
+  blog Blog  @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([blogId, channel])
+  @@map("share")
+}
+
+model Subscription {
+  id           String   @id @default(cuid())
+  subscriberId String
+  authorId     String
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  subscriber User @relation("Subscriber", fields: [subscriberId], references: [id], onDelete: Cascade)
+  author     User @relation("Author", fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@unique([subscriberId, authorId])
+  @@index([authorId])
+  @@map("subscription")
+}
+
+model Notification {
+  id          String           @id @default(cuid())
+  type        NotificationType
+  recipientId String
+  actorId     String
+  blogId      String?
+  commentId   String? // the comment/reply that triggered COMMENT/REPLY
+  isRead      Boolean          @default(false)
+  createdAt   DateTime         @default(now()) @db.Timestamptz(3)
+
+  recipient User     @relation("Recipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor     User     @relation("Actor", fields: [actorId], references: [id], onDelete: Cascade)
+  blog      Blog?    @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt(sort: Desc)])
+  @@index([recipientId, isRead])
+  @@index([recipientId, type, createdAt(sort: Desc)])
+  @@index([actorId, blogId, type, createdAt]) // SHARE 24 h de-dup, LIKE removal
+  @@map("notification")
+}
