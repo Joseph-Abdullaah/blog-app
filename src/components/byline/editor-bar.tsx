@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 import { Logo } from "./logo"
 import type { BlogStatus } from "./types"
 
-/** 64px editor bar: mark + title, status, unsaved indicator, Preview / Save Draft / Publish. */
+/** 64px editor bar: mark + title, status, unsaved indicator, Preview / Save Draft / Publish (published: Preview / Update, FR-EDIT-09). */
 function EditorBar({
   title,
   status = "DRAFT",
@@ -59,9 +59,11 @@ function EditorBar({
           <Button variant="ghost" className="hidden sm:inline-flex" onClick={onPreview}>
             Preview
           </Button>
-          <Button variant="secondary" loading={saving} onClick={onSaveDraft}>
-            {published ? "Unpublish" : "Save Draft"}
-          </Button>
+          {published ? null : (
+            <Button variant="secondary" loading={saving} onClick={onSaveDraft}>
+              Save Draft
+            </Button>
+          )}
           <Button loading={publishing} onClick={onPublish}>
             {published ? "Update" : "Publish"}
           </Button>
