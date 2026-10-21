@@ -1,8 +1,10 @@
 import type { Prisma } from "../../../generated/prisma/client"
+import { readTimeMinutes } from "@/lib/editor/read-time"
 import { ApiError } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
 import { replaceBlogTopics, topicSelect } from "@/lib/services/topics"
-import type { DraftBlogValues } from "@/lib/validations/blog"
+import { blogSlug } from "@/lib/slug"
+import type { DraftBlogValues, PublishBlogValues } from "@/lib/validations/blog"
 import type { EditableBlog, EditorJsData } from "@/types/dto"
 
 export const EMPTY_CONTENT: EditorJsData = { blocks: [] }
@@ -122,4 +124,62 @@ async function whyNotEditable(userId: string, blogId: string) {
 /** Prisma "record to update not found". */
 function isNotFound(error: unknown) {
   return (error as { code?: string } | null)?.code === "P2025"
+}
+
+/**
+ * E12 — publish, or update a published blog, in one transaction (FR-PUB-03…08).
+ * First publish sets the slug and publishedAt and notifies subscribers;
+ * updates keep both and send no notifications.
+ */
+export async function publishBlog(
+  userId: string,
+  blogId: string,
+  input: PublishBlogValues
+) {
+  const existing = await prisma.blog.findFirst({
+    where: { id: blogId, authorId: userId },
+    select: { status: true, slug: true },
+  })
+  if (!existing) throw ApiError.notFound("Blog not found")
+
+  const firstPublish = existing.status === "DRAFT"
+  const slug = existing.slug ?? blogSlug(input.title)
+
+  await prisma.$transaction(
+    async (tx) => {
+      await tx.blog.update({
+        where: { id: blogId },
+        data: {
+          title: input.title,
+          description: input.description,
+          bannerUrl: input.bannerUrl,
+          content: input.content as unknown as Prisma.InputJsonValue,
+          readTimeMinutes: readTimeMinutes(input.content),
+          status: "PUBLISHED",
+          ...(firstPublish ? { slug, publishedAt: new Date() } : {}),
+        },
+      })
+      await replaceBlogTopics(tx, blogId, input.topics)
+
+      if (firstPublish) {
+        const subscribers = await tx.subscription.findMany({
+          where: { authorId: userId },
+          select: { subscriberId: true },
+        })
+        if (subscribers.length) {
+          await tx.notification.createMany({
+            data: subscribers.map(({ subscriberId }) => ({
+              type: "NEW_BLOG" as const,
+              recipientId: subscriberId,
+              actorId: userId,
+              blogId,
+            })),
+          })
+        }
+      }
+    },
+    { timeout: 20_000 }
+  )
+
+  return { id: blogId, slug, status: "PUBLISHED" as const, firstPublish }
 }
