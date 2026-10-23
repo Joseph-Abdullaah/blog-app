@@ -15,6 +15,8 @@ function EditorBar({
   onPreview,
   onSaveDraft,
   onPublish,
+  previewing = false,
+  onBack,
   className,
 }: {
   title?: string
@@ -27,6 +29,9 @@ function EditorBar({
   onPreview?: () => void
   onSaveDraft?: () => void
   onPublish?: () => void
+  /** Preview mode: shows "Back to editing" + Publish/Update (S-09). */
+  previewing?: boolean
+  onBack?: () => void
   className?: string
 }) {
   const published = status === "PUBLISHED"
@@ -56,13 +61,21 @@ function EditorBar({
           {dirty ? "Unsaved changes" : savedAt ? `Saved ${savedAt}` : null}
         </span>
         <div className="ml-auto flex shrink-0 items-center gap-2">
-          <Button variant="ghost" className="hidden sm:inline-flex" onClick={onPreview}>
-            Preview
-          </Button>
-          {published ? null : (
-            <Button variant="secondary" loading={saving} onClick={onSaveDraft}>
-              Save Draft
+          {previewing ? (
+            <Button variant="ghost" onClick={onBack}>
+              Back to editing
             </Button>
+          ) : (
+            <>
+              <Button variant="ghost" className="hidden sm:inline-flex" onClick={onPreview}>
+                Preview
+              </Button>
+              {published ? null : (
+                <Button variant="secondary" loading={saving} onClick={onSaveDraft}>
+                  Save Draft
+                </Button>
+              )}
+            </>
           )}
           <Button loading={publishing} onClick={onPublish}>
             {published ? "Update" : "Publish"}
