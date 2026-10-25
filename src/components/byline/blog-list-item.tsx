@@ -14,6 +14,8 @@ type BlogListItemData = {
   author: AuthorSummary
   date: string | Date
   topic?: string
+  /** Used for the topic link; falls back to the name. */
+  topicSlug?: string
   likes: number
   readTime: number
   bannerUrl?: string | null
@@ -56,7 +58,7 @@ function BlogListItem({
         <div className="mt-1 flex items-center gap-4 text-body-sm text-ink-subtle">
           {blog.topic ? (
             <TopicChip
-              href={`/search?topic=${encodeURIComponent(blog.topic)}`}
+              href={`/search?topic=${encodeURIComponent(blog.topicSlug ?? blog.topic)}`}
               className="relative z-10"
             >
               {blog.topic}
