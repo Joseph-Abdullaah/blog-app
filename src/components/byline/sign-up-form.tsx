@@ -34,7 +34,7 @@ function SignUpForm() {
  async function handleGoogleSignUp() {
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/home"
+      callbackURL: "/blog"
     })
     if (error) {
       toast.add({
