@@ -6,6 +6,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { formatDate } from "@/lib/format"
 import { IconButton } from "./icon-button"
 import { StatGroup } from "./stat-card"
+import { SubscribeButton } from "./subscribe-button"
 import type { AuthorSummary } from "./types"
 import { UserAvatar } from "./user-avatar"
 
@@ -39,9 +40,12 @@ const socialLabels: Record<SocialKey, string> = {
 function ProfileCard({
   user,
   isSelf = false,
+  subscribed = false,
 }: {
   user: ProfileData
   isSelf?: boolean
+  /** Viewer already subscribes (shown when it's not their own profile). */
+  subscribed?: boolean
 }) {
   const socials = Object.entries(user.socials ?? {}).filter(([, url]) => url)
 
@@ -69,7 +73,9 @@ function ProfileCard({
           >
             Edit Profile
           </Button>
-        ) : null}
+        ) : (
+          <SubscribeButton subscribed={subscribed} name={user.name} username={user.username} />
+        )}
         {socials.length ? (
           <div className="flex items-center gap-1">
             {socials.map(([key, url]) => (

@@ -29,7 +29,7 @@ function UserListItem({
           ) : null}
         </span>
       </Link>
-      <SubscribeButton subscribed={user.subscribed} name={user.name} />
+      <SubscribeButton subscribed={user.subscribed} name={user.name} username={user.username} />
     </div>
   )
 }
