@@ -1,7 +1,11 @@
 import { ApiError } from "@/lib/errors"
 import { prisma } from "@/lib/prisma"
 import { latestBlogs } from "@/lib/services/feed"
-import type { PublicProfile, Socials } from "@/types/dto"
+import {
+  profileUsernameSchema,
+  type UpdateProfileValues,
+} from "@/lib/validations/profile"
+import type { Me, PublicProfile, Socials } from "@/types/dto"
 
 export const socialsSelect = {
   youtube: true,
@@ -131,4 +135,87 @@ export async function unsubscribe(subscriberId: string, username: string) {
     }),
   ])
   return { subscribed: false, subscribersCount: await countSubscribers(author.id) }
+}
+
+/* ─────────────── The signed-in member (E1–E3) ─────────────── */
+
+const meSelect = {
+  id: true,
+  name: true,
+  email: true,
+  username: true,
+  image: true,
+  bio: true,
+  createdAt: true,
+  ...socialsSelect,
+  accounts: { where: { providerId: "credential" }, select: { id: true } },
+} as const
+
+/** E1 — the member's own profile; `hasPassword` is false for Google-only accounts. */
+export async function getMe(userId: string): Promise<Me> {
+  const user = await prisma.user.findUniqueOrThrow({ where: { id: userId }, select: meSelect })
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    username: user.username ?? "",
+    image: user.image,
+    bio: user.bio,
+    socials: toSocials(user),
+    hasPassword: user.accounts.length > 0,
+    createdAt: user.createdAt.toISOString(),
+  }
+}
+
+/** E3 — `available` is true for the member's current username (FR-PROF-03). */
+export async function usernameAvailability(raw: string, userId: string) {
+  const parsed = profileUsernameSchema.safeParse(raw)
+  if (!parsed.success) {
+    const message = parsed.error.issues[0]?.message ?? ""
+    return {
+      available: false,
+      reason: (message.includes("reserved") ? "RESERVED" : "INVALID") as "RESERVED" | "INVALID",
+      message,
+    }
+  }
+  const owner = await prisma.user.findUnique({
+    where: { username: parsed.data },
+    select: { id: true },
+  })
+  return owner && owner.id !== userId
+    ? { available: false, reason: "TAKEN" as const, message: "That username is taken" }
+    : { available: true, reason: null, message: null }
+}
+
+/** E2 — update only the fields sent; 409 when the username is taken. */
+export async function updateMe(userId: string, input: UpdateProfileValues) {
+  if (input.username) {
+    const owner = await prisma.user.findUnique({
+      where: { username: input.username },
+      select: { id: true },
+    })
+    if (owner && owner.id !== userId) throw ApiError.conflict("That username is taken")
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(input.name !== undefined ? { name: input.name } : {}),
+        ...(input.username !== undefined
+          ? { username: input.username, displayUsername: input.username }
+          : {}),
+        ...(input.bio !== undefined ? { bio: input.bio } : {}),
+        ...(input.image !== undefined ? { image: input.image } : {}),
+        ...(input.socials ?? {}),
+      },
+    })
+  } catch (error) {
+    // Lost a race for the same username.
+    if ((error as { code?: string }).code === "P2002") {
+      throw ApiError.conflict("That username is taken")
+    }
+    throw error
+  }
+  return getMe(userId)
 }
