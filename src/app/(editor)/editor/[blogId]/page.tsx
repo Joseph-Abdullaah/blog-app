@@ -1,35 +1,22 @@
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
 
-import { EditorBar } from "@/components/byline"
-import { getBlogById } from "@/lib/mock-data"
+import { EditorScreen } from "@/components/editor/editor-screen"
+import { requireUser } from "@/lib/auth-guards"
+import { getEditableBlog } from "@/lib/services/blogs"
 
 export const metadata: Metadata = { title: "Edit blog" }
 
-/**
- * Editor shell for an existing blog (S-09). The blog is loaded from mock
- * data; the editing surface itself is left for the editor implementation.
- *
- * TODO(editor): load the real blog, then mount the banner, title and block
- * editor with `blog.bannerUrl`, `blog.title` and `blog.blocks` as initial data.
- */
+/** S-09 — existing blog; only its author may open it (FR-EDIT-08). */
 export default async function EditBlogPage({
   params,
 }: {
   params: Promise<{ blogId: string }>
 }) {
   const { blogId } = await params
-  const blog = getBlogById(blogId)
+  const user = await requireUser(`/editor/${blogId}`)
+  const blog = await getEditableBlog(user.id, blogId)
   if (!blog) notFound()
 
-  return (
-    <div className="min-h-svh bg-canvas">
-      <EditorBar title={blog.title} status={blog.status} savedAt="just now" />
-      <main className="mx-auto max-w-read px-4 pt-10 pb-24 sm:px-6">
-        {/* TODO(editor): <BannerUpload /> */}
-        {/* TODO(editor): title input (display-lg) */}
-        {/* TODO(editor): block editor */}
-      </main>
-    </div>
-  )
+  return <EditorScreen key={blog.id} initial={blog} />
 }

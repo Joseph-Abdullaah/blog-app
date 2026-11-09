@@ -338,3 +338,195 @@
         transform: scale(1);
     }
 }
+
+/* ───────────── Editor.js theme (S-09) ─────────────
+ * Scoped under .byline-editor so it outranks the CSS Editor.js injects at runtime.
+ * Block typography matches BlockRenderer, so the editor looks like the reader.
+ */
+.byline-editor {
+    --editor-popover-bg: var(--canvas);
+}
+.dark .byline-editor {
+    --editor-popover-bg: var(--surface-2);
+}
+.byline-editor .codex-editor__redactor {
+    padding-bottom: 120px !important;
+}
+.byline-editor .ce-block__content,
+.byline-editor .ce-toolbar__content {
+    max-width: none;
+}
+.byline-editor .ce-block--selected .ce-block__content {
+    background: var(--brand-subtle);
+    border-radius: var(--radius-sm);
+}
+.byline-editor ::selection {
+    background: var(--brand-subtle);
+}
+
+/* Blocks */
+.byline-editor .ce-paragraph {
+    font-family: var(--font-serif);
+    font-size: var(--text-reading-body);
+    line-height: var(--text-reading-body--line-height);
+    color: var(--ink-muted);
+}
+.byline-editor .ce-paragraph[data-placeholder]:empty::before,
+.byline-editor [data-placeholder]:empty::before,
+.byline-editor .cdx-input[data-placeholder]::before {
+    color: var(--ink-tertiary);
+}
+.byline-editor h2.ce-header {
+    font-size: var(--text-reading-h2);
+    line-height: var(--text-reading-h2--line-height);
+    letter-spacing: var(--text-reading-h2--letter-spacing);
+    font-weight: 600;
+    color: var(--ink);
+}
+.byline-editor h3.ce-header {
+    font-size: var(--text-reading-h3);
+    line-height: var(--text-reading-h3--line-height);
+    letter-spacing: var(--text-reading-h3--letter-spacing);
+    font-weight: 600;
+    color: var(--ink);
+}
+.byline-editor h4.ce-header {
+    font-size: var(--text-reading-h4);
+    line-height: var(--text-reading-h4--line-height);
+    letter-spacing: var(--text-reading-h4--letter-spacing);
+    font-weight: 600;
+    color: var(--ink);
+}
+.byline-editor .cdx-list {
+    font-family: var(--font-serif);
+    font-size: var(--text-reading-body);
+    line-height: var(--text-reading-body--line-height);
+    color: var(--ink-muted);
+}
+.byline-editor .cdx-quote__text {
+    font-family: var(--font-serif);
+    font-style: italic;
+    border: 0;
+    border-left: 3px solid var(--ink);
+    border-radius: 0;
+    box-shadow: none;
+    padding-left: 20px;
+    min-height: 0;
+}
+.byline-editor .ce-code__textarea {
+    font-family: var(--font-mono);
+    font-size: var(--text-code);
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-lg);
+    color: var(--ink-muted);
+    padding: 20px;
+    min-height: 120px;
+}
+.byline-editor .ce-delimiter::before {
+    color: var(--ink-tertiary);
+}
+.byline-editor .cdx-marker {
+    background: var(--brand-subtle);
+    color: inherit;
+}
+.byline-editor .inline-code {
+    background: var(--surface-2);
+    color: var(--ink);
+    border-radius: var(--radius-xs);
+    font-family: var(--font-mono);
+    font-size: 0.9em;
+    padding: 2px 6px;
+}
+.byline-editor a {
+    color: var(--brand);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* Inputs inside tools (image caption, quote caption, embed caption) */
+.byline-editor .cdx-input {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-md);
+    box-shadow: none;
+    color: var(--ink);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-sm);
+}
+.byline-editor .cdx-button {
+    background: var(--surface-1);
+    border: 1px solid var(--hairline);
+    border-radius: var(--radius-pill);
+    box-shadow: none;
+    color: var(--ink);
+}
+.byline-editor .image-tool__image-picture {
+    border-radius: var(--radius-lg);
+}
+
+/* Toolbar (+ and ⋮⋮) */
+.byline-editor .ce-toolbar__plus,
+.byline-editor .ce-toolbar__settings-btn {
+    color: var(--ink-subtle);
+    border-radius: var(--radius-md);
+}
+.byline-editor .ce-toolbar__plus:hover,
+.byline-editor .ce-toolbar__settings-btn:hover {
+    background: var(--surface-1);
+    color: var(--ink);
+}
+
+/* Popovers: toolbox, block tunes, inline toolbar, conversion */
+.byline-editor .ce-popover {
+    --border-radius: var(--radius-md);
+    --color-border: var(--hairline);
+    --color-shadow: rgba(0, 0, 0, 0.12);
+    --color-background: var(--editor-popover-bg);
+    --color-text-primary: var(--ink);
+    --color-text-secondary: var(--ink-subtle);
+    --color-border-icon: var(--hairline-strong);
+    --color-border-icon-disabled: var(--hairline);
+    --color-text-icon-active: var(--brand);
+    --color-background-icon-active: var(--brand-subtle);
+    --color-background-item-focus: var(--surface-1);
+    --color-shadow-item-focus: transparent;
+    --color-background-item-hover: var(--surface-1);
+    --color-background-item-confirm: var(--danger);
+    --color-background-item-confirm-hover: var(--danger);
+}
+.dark .byline-editor .ce-popover {
+    --color-border: var(--hairline-strong);
+    --color-shadow: transparent;
+    --color-background-item-hover: var(--surface-3);
+    --color-background-item-focus: var(--surface-3);
+}
+.byline-editor .ce-popover__container {
+    font-family: var(--font-sans);
+}
+.byline-editor .ce-inline-tool,
+.byline-editor .ce-inline-toolbar__dropdown {
+    color: var(--ink-muted);
+}
+.byline-editor .ce-inline-tool:hover,
+.byline-editor .ce-inline-toolbar__dropdown:hover {
+    background: var(--surface-1);
+}
+.byline-editor .ce-inline-tool--active {
+    color: var(--brand);
+}
+.byline-editor .ce-inline-tool-input {
+    background: var(--editor-popover-bg);
+    color: var(--ink);
+    border-top: 1px solid var(--hairline);
+}
+
+/* Tables */
+.byline-editor .tc-wrap {
+    --color-border: var(--hairline);
+    --color-text-secondary: var(--ink-subtle);
+    --color-background: var(--surface-1);
+    font-family: var(--font-sans);
+    font-size: var(--text-body-sm);
+    color: var(--ink-muted);
+}
