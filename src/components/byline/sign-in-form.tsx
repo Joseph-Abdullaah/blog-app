@@ -32,7 +32,7 @@ function SignInForm() {
   async function handleGoogleSignIn() {
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/home"
+      callbackURL: "/blog"
     })
     if (error) {
       toast.add({
@@ -54,7 +54,7 @@ function SignInForm() {
           router.push(`/verify-email?email=${encodeURIComponent(values.email)}&from=sign-in`)
         }
       },
-    onSuccess: () => router.push("/home"),
+    onSuccess: () => router.push("/blog"),
     },
     
   )
