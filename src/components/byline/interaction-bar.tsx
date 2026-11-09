@@ -21,6 +21,8 @@ import {
 import { toast } from "@/components/ui/toast"
 import { formatCount } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import type { ShareChannel } from "@/types/dto"
+import { useEngagement } from "./blog-engagement"
 
 /** Heart toggle. Inactive ink-subtle; active filled `like`; pops once. */
 function LikeButton({
@@ -32,20 +34,28 @@ function LikeButton({
   count: number
   onToggle?: (liked: boolean) => void
 }) {
-  const [liked, setLiked] = React.useState(initialLiked)
-  const [count, setCount] = React.useState(initialCount)
+  const engagement = useEngagement()
+  const [localLiked, setLocalLiked] = React.useState(initialLiked)
+  const [localCount, setLocalCount] = React.useState(initialCount)
+
+  const liked = engagement ? engagement.liked : localLiked
+  const count = engagement ? engagement.likes : localCount
+  const ownBlog = engagement?.isAuthor ?? false
 
   return (
     <Button
       variant="ghost"
       size="sm"
       aria-pressed={liked}
-      aria-label={liked ? "Unlike" : "Like"}
-      className={cn("px-2", liked && "text-like hover:text-like")}
+      aria-label={ownBlog ? "Likes" : liked ? "Unlike" : "Like"}
+      title={ownBlog ? "You can't like your own blog" : undefined}
+      disabled={ownBlog}
+      className={cn("px-2 disabled:opacity-100", liked && "text-like hover:text-like")}
       onClick={() => {
-        const next = !liked
-        setLiked(next)
-        setCount((c) => c + (next ? 1 : -1))
+        if (engagement) return engagement.toggleLike()
+        const next = !localLiked
+        setLocalLiked(next)
+        setLocalCount((c) => c + (next ? 1 : -1))
         onToggle?.(next)
       }}
     >
@@ -62,27 +72,35 @@ function LikeButton({
   )
 }
 
-const shareTargets = [
-  { label: "X", href: (u: string, t: string) => `https://twitter.com/intent/tweet?url=${u}&text=${t}` },
-  { label: "Facebook", href: (u: string) => `https://www.facebook.com/sharer/sharer.php?u=${u}` },
-  { label: "LinkedIn", href: (u: string) => `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
-  { label: "WhatsApp", href: (u: string, t: string) => `https://wa.me/?text=${t}%20${u}` },
+const shareTargets: {
+  channel: ShareChannel
+  label: string
+  href: (url: string, title: string) => string
+}[] = [
+  { channel: "X", label: "X", href: (u, t) => `https://x.com/intent/post?url=${u}&text=${t}` },
+  { channel: "FACEBOOK", label: "Facebook", href: (u) => `https://www.facebook.com/sharer/sharer.php?u=${u}` },
+  { channel: "LINKEDIN", label: "LinkedIn", href: (u) => `https://www.linkedin.com/sharing/share-offsite/?url=${u}` },
+  { channel: "WHATSAPP", label: "WhatsApp", href: (u, t) => `https://wa.me/?text=${t}%20${u}` },
 ]
 
-/** Share dropdown: copy link, social targets, email. */
+/** Share dropdown: copy link, social targets, email (FR-SHR-01). Each share is counted. */
 function ShareMenu({ url, title }: { url?: string; title?: string }) {
+  const engagement = useEngagement()
+
   function target() {
+    const link =
+      url ??
+      (engagement ? `${window.location.origin}/blog/${engagement.slug}` : window.location.href)
     return {
-      u: encodeURIComponent(url ?? window.location.href),
-      t: encodeURIComponent(title ?? document.title),
+      link,
+      u: encodeURIComponent(link),
+      t: encodeURIComponent(title ?? engagement?.title ?? document.title),
     }
   }
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={<Button variant="ghost" size="sm" className="px-2" />}
-      >
+      <DropdownMenuTrigger render={<Button variant="ghost" size="sm" className="px-2" />}>
         <Share2Icon className="size-5" aria-hidden />
         Share
       </DropdownMenuTrigger>
@@ -90,8 +108,13 @@ function ShareMenu({ url, title }: { url?: string; title?: string }) {
         <DropdownMenuGroup>
           <DropdownMenuItem
             onClick={async () => {
-              await navigator.clipboard.writeText(url ?? window.location.href)
-              toast.add({ title: "Link copied", type: "success" })
+              try {
+                await navigator.clipboard.writeText(target().link)
+                engagement?.share("COPY_LINK")
+                toast.add({ title: "Link copied", type: "success" })
+              } catch {
+                toast.add({ title: "Couldn't copy the link", type: "error" })
+              }
             }}
           >
             <Link2Icon aria-hidden />
@@ -99,9 +122,10 @@ function ShareMenu({ url, title }: { url?: string; title?: string }) {
           </DropdownMenuItem>
           {shareTargets.map((s) => (
             <DropdownMenuItem
-              key={s.label}
+              key={s.channel}
               onClick={() => {
                 const { u, t } = target()
+                engagement?.share(s.channel)
                 window.open(s.href(u, t), "_blank", "noopener,noreferrer")
               }}
             >
@@ -112,6 +136,7 @@ function ShareMenu({ url, title }: { url?: string; title?: string }) {
           <DropdownMenuItem
             onClick={() => {
               const { u, t } = target()
+              engagement?.share("EMAIL")
               window.location.href = `mailto:?subject=${t}&body=${u}`
             }}
           >
@@ -142,13 +167,11 @@ function InteractionBar({
   title?: string
   className?: string
 }) {
+  const engagement = useEngagement()
+  const commentCount = engagement ? engagement.comments : comments
+
   return (
-    <div
-      className={cn(
-        "flex h-14 items-center gap-6 border-y border-hairline",
-        className
-      )}
-    >
+    <div className={cn("flex h-14 items-center gap-6 border-y border-hairline", className)}>
       <LikeButton liked={liked} count={likes} onToggle={onToggleLike} />
       <Button
         variant="ghost"
@@ -158,7 +181,7 @@ function InteractionBar({
         nativeButton={false}
       >
         <MessageCircleIcon className="size-5" aria-hidden />
-        {formatCount(comments)}
+        {formatCount(commentCount)}
         <span className="sr-only">comments</span>
       </Button>
       <div className="ml-auto">

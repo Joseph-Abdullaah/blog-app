@@ -9,8 +9,21 @@ import { TextareaField } from "./text-field"
 /** Comment box: textarea with a 1000-character counter and a Comment button. */
 function CommentComposer({
   onSubmit,
+  label = "Add a comment",
+  placeholder = "Add a comment",
+  submitLabel = "Comment",
+  successMessage = "Comment posted",
+  autoFocus,
+  onCancel,
 }: {
-  onSubmit?: (content: string) => void | Promise<void>
+  /** Return `false` (or throw) to keep the text, e.g. when the request failed. */
+  onSubmit?: (content: string) => boolean | void | Promise<boolean | void>
+  label?: string
+  placeholder?: string
+  submitLabel?: string
+  successMessage?: string
+  autoFocus?: boolean
+  onCancel?: () => void
 }) {
   const [value, setValue] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -23,25 +36,33 @@ function CommentComposer({
         if (!value.trim()) return
         setLoading(true)
         try {
-          await onSubmit?.(value)
+          if ((await onSubmit?.(value.trim())) === false) return
           setValue("")
-          toast.add({ title: "Comment posted", type: "success" })
+          toast.add({ title: successMessage, type: "success" })
+        } catch {
+          // The caller reports the error; keep the text so nothing is lost.
         } finally {
           setLoading(false)
         }
       }}
     >
       <TextareaField
-        label="Add a comment"
+        label={label}
         name="comment"
-        placeholder="Add a comment"
+        placeholder={placeholder}
         maxLength={1000}
         value={value}
+        autoFocus={autoFocus}
         onChange={(e) => setValue(e.target.value)}
       />
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        {onCancel ? (
+          <Button type="button" variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+        ) : null}
         <Button type="submit" loading={loading} disabled={!value.trim()}>
-          Comment
+          {submitLabel}
         </Button>
       </div>
     </form>
