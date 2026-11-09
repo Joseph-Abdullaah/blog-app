@@ -1,4 +1,4 @@
-import { BellIcon, PenLineIcon, SearchIcon } from "lucide-react"
+import { PenLineIcon, SearchIcon } from "lucide-react"
 import Link from "next/link"
 
 import { Button } from "@/components/ui/button"
@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils"
 import { AvatarMenu } from "./avatar-menu"
 import { IconButton } from "./icon-button"
 import { Logo } from "./logo"
+import { NotificationBell } from "./notification-bell"
 import { SearchInput } from "./search-input"
 import type { AuthorSummary } from "./types"
 
@@ -47,13 +48,7 @@ function Navbar({
                 <PenLineIcon aria-hidden />
                 Write
               </Button>
-              <IconButton
-                icon={BellIcon}
-                label="Notifications"
-                href="/dashboard/notifications"
-                dot={unread}
-                filled
-              />
+              <NotificationBell initialCount={unread ? 1 : 0} />
               <AvatarMenu user={user}  />
             </>
           ) : (
