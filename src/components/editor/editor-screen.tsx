@@ -18,9 +18,11 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { toast } from "@/components/ui/toast"
-import type { EditableBlog, EditorJsData, TopicDTO } from "@/types/dto"
+import type { EditableBlog, EditorJsData } from "@/types/dto"
 import { BannerUpload } from "./banner-upload"
 import type { BlockEditorHandle } from "./block-editor"
+import { EditorPreview } from "./editor-preview"
+import { PublishPanel, type PublishResult } from "./publish-panel"
 import { TitleInput } from "./title-input"
 
 const BlockEditor = dynamic(() => import("./block-editor"), {
@@ -53,7 +55,7 @@ async function request<T>(url: string, init: RequestInit) {
   return body.data
 }
 
-/** S-09 editor: banner, title, Editor.js canvas, Save Draft and autosave. */
+/** S-09 editor: banner, title, Editor.js canvas, Save Draft, autosave, preview and publish (S-10). */
 export function EditorScreen({ initial }: { initial?: EditableBlog }) {
   const router = useRouter()
   const editorRef = useRef<BlockEditorHandle | null>(null)
@@ -62,8 +64,14 @@ export function EditorScreen({ initial }: { initial?: EditableBlog }) {
   const [status] = useState(initial?.status ?? "DRAFT")
   const [title, setTitle] = useState(initial?.title ?? "")
   const [bannerUrl, setBannerUrl] = useState(initial?.bannerUrl ?? null)
-  const [description] = useState(initial?.description ?? "")
-  const [topics] = useState<TopicDTO[]>(initial?.topics ?? [])
+  const [description, setDescription] = useState(initial?.description ?? "")
+  const [topics, setTopics] = useState<string[]>(
+    initial?.topics.map((t) => t.name) ?? []
+  )
+  const [topicsChanged, setTopicsChanged] = useState(false)
+  const [previewContent, setPreviewContent] = useState<EditorJsData | null>(null)
+  const [publishOpen, setPublishOpen] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
   const [savedAt, setSavedAt] = useState<Date | null>(
@@ -76,24 +84,36 @@ export function EditorScreen({ initial }: { initial?: EditableBlog }) {
   const markDirty = useCallback(() => setDirty(true), [])
 
   // Latest values for the autosave timer without restarting it.
-  const stateRef = useRef({ blogId, title, bannerUrl, description, topics, dirty, saving })
-  useEffect(() => {
-    stateRef.current = { blogId, title, bannerUrl, description, topics, dirty, saving }
+  const stateRef = useRef({
+    blogId, title, bannerUrl, description, topics, topicsChanged, dirty, saving,
   })
+  useEffect(() => {
+    stateRef.current = {
+      blogId, title, bannerUrl, description, topics, topicsChanged, dirty, saving,
+    }
+  })
+
+  /** Current content: from the preview snapshot or the live editor. */
+  const currentContent = useCallback(async (): Promise<EditorJsData> => {
+    return (
+      (await editorRef.current?.save()) ?? initialContent ?? { blocks: [] }
+    )
+  }, [initialContent])
 
   const saveDraft = useCallback(
     async ({ silent = false } = {}) => {
       const s = stateRef.current
-      if (s.saving || published) return
+      if (s.saving || published) return s.blogId
       setSaving(true)
       try {
-        const content: EditorJsData =
-          (await editorRef.current?.save()) ?? initialContent ?? { blocks: [] }
+        const content = await currentContent()
         const body = JSON.stringify({
           title: s.title,
           description: s.description,
           bannerUrl: s.bannerUrl,
           content,
+          // Topics are only sent when they changed (keeps saves to one query).
+          ...(s.topicsChanged || !s.blogId ? { topics: s.topics } : {}),
         })
 
         const saved = s.blogId
@@ -106,8 +126,10 @@ export function EditorScreen({ initial }: { initial?: EditableBlog }) {
           window.history.replaceState(null, "", `/editor/${saved.id}`)
         }
         setDirty(false)
+        setTopicsChanged(false)
         setSavedAt(new Date(saved.updatedAt))
         if (!silent) toast.add({ title: "Draft saved", type: "success" })
+        return saved.id
       } catch (error) {
         toast.add({
           title: silent ? "Autosave failed" : "Couldn't save draft",
@@ -117,9 +139,32 @@ export function EditorScreen({ initial }: { initial?: EditableBlog }) {
       } finally {
         setSaving(false)
       }
+      return null
     },
-    [initialContent, published]
+    [currentContent, published]
   )
+
+  /** Publish panel needs an id: a brand-new blog is saved as a draft first. */
+  const prepare = useCallback(async () => {
+    const content = await currentContent()
+    let id = stateRef.current.blogId
+    if (!id) id = (await saveDraft({ silent: true })) ?? null
+    if (!id) throw new Error("Couldn't save your draft. Try again.")
+    return { blogId: id, content }
+  }, [currentContent, saveDraft])
+
+  async function openPreview() {
+    setPreviewContent(await currentContent())
+    window.scrollTo({ top: 0 })
+  }
+
+  function onPublished(result: PublishResult) {
+    setPublishing(true)
+    setDirty(false)
+    setPublishOpen(false)
+    toast.add({ title: result.firstPublish ? "Published" : "Updated", type: "success" })
+    router.push(`/blog/${result.slug}`)
+  }
 
   // Autosave every 30 s while there are unsaved changes (FR-EDIT-06).
   useEffect(() => {
@@ -163,11 +208,30 @@ export function EditorScreen({ initial }: { initial?: EditableBlog }) {
         status={status}
         dirty={dirty}
         saving={saving}
+        publishing={publishing}
         savedAt={savedAt ? `· ${timeLabel(savedAt)}` : undefined}
+        previewing={previewContent !== null}
+        onBack={() => setPreviewContent(null)}
+        onPreview={() => void openPreview()}
         onSaveDraft={() => void saveDraft()}
+        onPublish={() => setPublishOpen(true)}
       />
 
-      <main className="mx-auto flex max-w-read flex-col gap-8 px-4 pt-8 pb-24 sm:px-6 sm:pt-10">
+      {previewContent ? (
+        <EditorPreview
+          title={title}
+          description={description}
+          bannerUrl={bannerUrl}
+          topics={topics}
+          content={previewContent}
+        />
+      ) : null}
+
+      {/* Kept mounted while previewing so Editor.js keeps its state. */}
+      <main
+        hidden={previewContent !== null}
+        className="mx-auto flex max-w-read flex-col gap-8 px-4 pt-8 pb-24 sm:px-6 sm:pt-10"
+      >
         <BannerUpload
           value={bannerUrl}
           onChange={(url) => {
@@ -191,6 +255,29 @@ export function EditorScreen({ initial }: { initial?: EditableBlog }) {
           onChange={markDirty}
         />
       </main>
+
+      <PublishPanel
+        open={publishOpen}
+        status={status}
+        title={title}
+        bannerUrl={bannerUrl}
+        description={description}
+        topics={topics}
+        prepare={prepare}
+        onPublished={onPublished}
+        onClose={(values) => {
+          setPublishOpen(false)
+          if (values.description !== description) {
+            setDescription(values.description)
+            setDirty(true)
+          }
+          if (values.topics.join("|") !== topics.join("|")) {
+            setTopics(values.topics)
+            setTopicsChanged(true)
+            setDirty(true)
+          }
+        }}
+      />
 
       <Dialog
         open={pendingHref !== null}
