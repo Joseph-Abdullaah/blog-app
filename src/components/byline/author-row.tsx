@@ -50,7 +50,7 @@ function AuthorRow({
           </Button>
         ) : null
       ) : (
-        <SubscribeButton subscribed={subscribed} name={author.name} />
+        <SubscribeButton subscribed={subscribed} name={author.name} username={author.username} />
       )}
     </div>
   )
